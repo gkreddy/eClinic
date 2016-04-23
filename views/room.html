@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>ChatCAT</title>
+	<link rel="stylesheet" href="../css/room.css">
+	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		$(function(){
+			var host='{{config.host}}'
+			var socket=io.connect(host+'/messages')
+			var room_number={{room_number}}
+			var room_name={{room_name}}
+			var user='{{user.fullName}}'
+			var userPic='{{user.profilePic}}'
+
+			socket.on('connect',function(){
+				console.log('socket is connected on room.html')
+				socket.emit('joinroom',{room_number:room_number,userPic:userPic,userName:user})
+			})
+
+			$(document).on('keyup','.newmessage',function(e){
+		        if(e.which==13 && $('.newmessage').val()!=""){		        	
+		        	socket.emit('newmessage',{message:$(this).val(),room_number:room_number,userName:user,userPic:userPic})
+		        	updateMessageFeed(userPic,$(this).val())
+		        	$(this).val('')
+		        }
+		    });
+
+			socket.on('newmessagefeed',function(data){
+				var msg=JSON.parse(data)
+				updateMessageFeed(msg.userPic,msg.message)
+			})
+
+		    function updateMessageFeed(userPic,message){
+				var str='<li>'
+					str+='<div class="msgbox">'
+					str+='<div class="pic"><img src="'+userPic+'"></div>'
+					str+='<div class="msg"><p>'+message+'</p></div>'
+					str+='</div>'
+					str+='</li>'
+
+				$(str).hide().prependTo($('.messages')).slideDown(100)
+			}
+
+			socket.on('updateUsersList',function(data){
+				console.log("!!!!!!!!!!!!!"+data)
+				var users=JSON.parse(data)
+				$('users').html('')
+				for (var i=0;i<users.length;i++){
+					var str='<li><img src="'+users[i].userpic+'"<h5>'+users[i].userName+'</h5></li>'
+					
+					$(str).prependTo($('.users'))
+				}
+				
+			})
+
+			setInterval(function(){
+				socket.emit('updateList',{room_number:room_number})
+			},15*1000)
+
+		})
+
+	</script>
+</head>
+<body>
+<div class="rm-container">
+		<h1 class="rm-title">ChatCAT</h1>
+		<div class="rm-userbox">
+			<img src="{{user.profilePic}}" class="userPic">
+			<h3 class="userName">{{user.fullName}} | <a href="/logout">Logout</a><a href="/chatrooms">More Chatrooms</a></h3>
+		</div>
+		<div class="rm-roomname">
+			<h5>{{room_name}}</h5>
+		</div>
+		<div class="rm-messages">
+			<ul class="messages">
+				
+			</ul>
+		</div>
+		<div class="rm-users">
+			<ul class="users">
+				
+			</ul>
+		</div>
+		<div class="rm-newmessage">
+			<input type="text" class="newmessage" autocomplete="off" placeholder="Type in your message and press enter !">
+			
+		</div>
+	</div>
+</body>
+</html>
